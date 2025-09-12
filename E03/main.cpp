@@ -19,16 +19,19 @@ void greedy_selector_algorithm(vector<Request> &vec, vector<Request> &solution)
 {
 
     solution.clear(); // Zerando os valores presente no conjunto solução, para evitar acumulo.
-    // Primeiro ordenamos a lista de requisições por ordem crescente de tempo de devolução
+
+    // Ordenação da lista de solicitações de aluguel
     sort(vec.begin(), vec.end(), [](const Request &a, const Request &b)
          {
              if (a.hour_d != b.hour_d)
-                 return a.hour_d < b.hour_d; // Ordena pela hora
+                 return a.hour_d < b.hour_d; // Ordena pela hora de devolução
              if (a.minute_d != b.minute_d)
-                 return a.minute_d < b.minute_d; // Caso as horas seja igual, verifica os minutos.
+                 return a.minute_d < b.minute_d; // Caso as horas de devolução seja igual, verifica os minutos.
              if (a.hour_r != b.hour_r)
                  return a.hour_r < b.hour_r; // Caso as horas e minutos sejam iguais, coloca como preferência quem tem a menor hora de retirada
-             return a.minute_r < b.minute_r; // Ultimo caso, se horario de devolução e hora de retirada iguais, verifica os minutos do horario de retirada
+             if (a.minute_r != b.minute_r)
+                 return a.minute_r < b.minute_r; //  Caso o horario de devolução e hora de retirada sejam iguais, ordena pelos minutos do horario de retirada
+             return a.id < b.id;                 // Ultimo caso, caso os horarios de devolução e retirada sejam iguais, ordena por user_id.
          });
 
     solution.push_back(vec[0]); // Adiciona a solicitação que tem o tempo de devolução que termina mais cedo.(elemento a0)
@@ -99,6 +102,8 @@ int main()
             if (!first_loop)
                 cout << " | "; // Separador entre modelos
             first_loop = false;
+
+            // Verifica se a minha respectiva chave no dicionario tem um valor associado a ela
             if (cars.count(car_id))
             { // Chamada a função que executa o algoritmo guloso
                 greedy_selector_algorithm(cars[car_id], solution);
