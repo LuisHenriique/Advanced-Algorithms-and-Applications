@@ -5,7 +5,7 @@ main.o: main.cpp
 	g++ main.cpp -o main
 
 run: all
-	./main
+	./main < 1.in
 
 clear:
 
