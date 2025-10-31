@@ -1,0 +1,11 @@
+2
+4 4 50000
+Core-A 0 0
+Singularity-1 0.1 0.1
+Singularity-2 -0.1 0.1
+Singularity-3 0.1 -0.1
+4 4 50000
+NebulaA-01 100 100
+NebulaA-02 101 100
+NebulaA-29 100.9 100.0
+NebulaA-30 100.0 100.1
