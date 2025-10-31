@@ -6,18 +6,18 @@ def distance_between_two_points(pointA,pointB):
     return math.sqrt((pointA[0] - pointB[0])**2 + (pointA[1] - pointB[1])**2)
 
 def brute_force_closest_pair(P, n, priority):
-    """Força bruta com desempate por prioridade do par."""
+    """Encontra o par de pontos mais proximos utilizando forca bruta"""
     min_d = float('inf')
     pair = None
     for i in range(n):
         for j in range(i+1, n):
             dist = distance_between_two_points(P[i][1:], P[j][1:])
-            # Se encontrou distância menor OU empate com prioridade melhor
+            # Verifica se encontrou uma distância menor ou, em caso de empate, um par com maior prioridade
             if (dist < min_d or
                 (abs(dist - min_d) < 1e-9 and priority[P[i][0]] < priority[pair[0]]) or
                 (abs(dist - min_d) < 1e-9 and priority[P[i][0]] == priority[pair[0]] and priority[P[j][0]] < priority[pair[1]])):
                 min_d = dist
-                # ordena os ids de acordo com prioridade (menor índice primeiro)
+                # Garante que o par seja ordenado conforme a prioridade (menor valor indica maior prioridade)
                 if priority[P[i][0]] < priority[P[j][0]]:
                     pair = (P[i][0], P[j][0])
                 else:
@@ -26,21 +26,21 @@ def brute_force_closest_pair(P, n, priority):
 
 
 def closestPair(px, py ,n, priority):
-    """Funcao responsavel por encontrar o par de pontos mais proximos utilizando divisao e conquista"""
+    """Funcao que encontra o par de pontos mais proximos utilizando divisao e conquista"""
     
     # Caso base - utiliza forca bruta para calcular o par de pontos mais proximos
     if n <= 3:
         return brute_force_closest_pair(px, n, priority)
     
-    # divide no meio o conjunto de pontos 
+    # Divide o conjunto de pontos ao meio (com base no eixo X)
     mid = n // 2 
     mid_x = px[mid][1]
     
-    # conjuntos dos pontos x do lado esquerdo e direito, divide X conforme a linha do meio
+    # Separa os pontos em subconjuntos esquerdo e direito (por X)
     left_x = px[:mid] 
     right_x = px[mid:]
     
-    # conjunto dos ponto y do lado esquerdo e direito, divide Y conforme a linha do meio
+    # Divide também os pontos ordenados por Y, conforme a posição relativa à linha central mid_x
     left_y = [p for p in py if p[1]<= mid_x]
     right_y = [p for p in py if p[1] > mid_x]
     
@@ -48,7 +48,7 @@ def closestPair(px, py ,n, priority):
     d_left, pair_left = closestPair(left_x, left_y, len(left_x), priority)
     d_right, pair_right = closestPair(right_x, right_y, len(right_x), priority)
     
-    # desempate entre lados esquerdo/direito por prioridade do par, se distâncias iguais
+    # Desempate entre lados esquerdo/direito por prioridade do par, caso as distâncias sejam iguais
     if (d_left < d_right) or (
     abs(d_left - d_right) < 1e-9 and (
         (priority[pair_left[0]] < priority[pair_right[0]]) or
@@ -60,24 +60,24 @@ def closestPair(px, py ,n, priority):
     else:
         d = d_right
         best_pair = pair_right
-
         
     # ======== Combina (strip central) ========
-    # Pega os pontos próximos à linha central (distância < d)
+    # Considera os pontos próximos à linha central (distância < d)
     strip = [p for p in py if abs(p[1] - mid_x) < d]
 
-    # Verifica no máximo os próximos 7 vizinhos
+    # Verifica no máximo os próximos 7 vizinhos para cada ponto (otimização garantida)
     for i in range(len(strip)):
         for j in range(i + 1, min(i + 7, len(strip))):
             d2 = distance_between_two_points(strip[i][1:], strip[j][1:])
             
-            # Caso a distancia entre pares empate, utilize o criterio da prioridade
+            # Caso a distância empate, aplica o critério de desempate por prioridade dos IDs
             if (d2 < d or
-                        (abs(d2 - d) < 1e-9 and priority[strip[i][0]] < priority[best_pair[0]]) or
-                        (abs(d2 - d) < 1e-9 and priority[strip[i][0]] == priority[best_pair[0]] and 
-                         priority[strip[j][0]] < priority[best_pair[1]])):
+                (abs(d2 - d) < 1e-9 and priority[strip[i][0]] < priority[best_pair[0]]) or
+                (abs(d2 - d) < 1e-9 and priority[strip[i][0]] == priority[best_pair[0]] and 
+                priority[strip[j][0]] < priority[best_pair[1]])):
+                
                 d = d2
-                # ordenar o par pelo id de maior prioridade primeiro
+                # Ordena o par de acordo com a prioridade (menor índice → mais prioritário)
                 if priority[strip[i][0]] < priority[strip[j][0]]:
                     best_pair = (strip[i][0], strip[j][0])
                 else:
@@ -86,24 +86,23 @@ def closestPair(px, py ,n, priority):
     return d, best_pair
                                       
 def calculate_malha_essencial(systems, n_main_systems, tensao_max, priority):
-    """Funcao que executa o algoritmo de prim, para encontrar a arvore geradora minima"""
+    """Executa o algoritmo de Prim para encontrar a Árvore Geradora Mínima (MST)"""
     
-    # Inicializacao do dicionario para acesso rapido as coordenadas 
+    # Inicializa um dicionário para acesso rápido às coordenadas
     coordenadas = {}
     for id, x, y in systems:
         # id: (x,y)
         coordenadas[id] = (x,y)
 
-    # Conjunto dos vértices já visitados, ou seja, estao na MST
+    # Conjunto de vértices já incluídos na MST
     visited =  set()
-    # malha final(MST) -  conjunto solucao
+    # Lista de arestas que compõem a MST (conjunto solucao)
     malha_final = []
-    # Fila de prioridade para as arestas
+    # Fila de prioridade (min-heap) contendo as arestas válidas
     pq = []
 
-    # loop guloso do prim - enquanto houver vertices nao visitados 
     while len(visited) < n_main_systems:
-        # Se a fila está vazia, precisamos encontrar um novo ponto
+        # Se a fila estiver vazia, é necessário escolher um novo vértice inicial
         if not pq:
             # Encontre o primeiro sistema que ainda não foi visitado
             proximo_inicio_id = None
@@ -119,7 +118,7 @@ def calculate_malha_essencial(systems, n_main_systems, tensao_max, priority):
             visited.add(proximo_inicio_id)
             add_arestas_do_vertice_atual(proximo_inicio_id, coordenadas, visited, pq, tensao_max, priority)
 
-        # Caso a fila ainda estiver vazia, continua procurando o proximo inicio
+        # Caso a fila ainda estiver vazia, continua procurando o proximo vertice nao visitado
         if not pq:
             continue
         
@@ -133,7 +132,7 @@ def calculate_malha_essencial(systems, n_main_systems, tensao_max, priority):
         # se não estiver adiciona nos visitados
         visited.add(id_dest)     
 
-        # verifica a prioridade para adicionar na ordem correta na malha final
+        # Define a ordem dos vértices no par com base na prioridade dos ID
         if (priority[id_origem] < priority[id_dest] or (priority[id_origem] == priority[id_dest] and id_origem < id_dest)):          
             malha_final.append((id_origem, id_dest, dist))
         else:
@@ -149,19 +148,19 @@ def add_arestas_do_vertice_atual(id_atual, coordenadas, visited, pq, tensao_max,
     
     # Pega as coordenadas do vertice atual
     coord_atual = coordenadas[id_atual]
-    # itera sobre todos os vertices e calcula a distancia entre o vertice atual com todos os demais
+    # Itera sobre todos os vértices para calcular as distâncias ao vértice atual
     for id_vizinho, coord_vizinho in coordenadas.items():
-        # Nao cria aresta para si mesmo ou para quem já está no conjunto solucao 
+        # Evita criar aresta para si mesmo ou para vértices já visitados
         if id_vizinho != id_atual and id_vizinho not in visited:
             dist = distance_between_two_points(coord_atual,coord_vizinho)
-            # Se a distancia calcula esta dentro da margem maxima de distancia, add na lista de prioridade.
+            # Adiciona a aresta apenas se estiver dentro do limite de distância permitido
             if dist <= tensao_max:
-                # Adiciona a aresta (distância,desempate pela prioridade do destino (id_vizinho) o que tiver menor valor -> mais prioritario, origem, destino)
-                # na fila de prioridade
+                # Insere na fila: (distância, prioridade do destino, origem, destino)
+                # Menores distâncias e maiores prioridades são processadas primeiro
                 heapq.heappush(pq, (dist, priority[id_vizinho], id_atual, id_vizinho))
                 
 def printar_saida(solutionSet, dist_min, pair):
-    """Funcao responsavel por formatar a saida"""
+    """Formata e exibe a saída conforme o padrão esperado."""
     
     for id_origem, id_dest, dist in solutionSet:
         print(f"{id_origem}, {id_dest}, {dist:.2f}") 
@@ -169,7 +168,6 @@ def printar_saida(solutionSet, dist_min, pair):
     print('\n')
     
 def main():
-    
     # Numero de problemas a serem resolvidos
     n_problems = int(input()) 
     for i in range(n_problems):
@@ -178,22 +176,18 @@ def main():
         # Lista de tuplas, a qual representa os sistemas (id, x, y) 
         systems = [(id, float(x), float(y)) for id, x, y in (input().split(' ') for _ in range(n_systems))] 
         
-        # Cria dicionário de prioridade 
+        # Cria dicionário de prioridade para cada id
         priority = {id: i for i, (id, _, _) in enumerate(systems)}
 
         # Parte 1 - Encontra a arvore geradora minima
-        # Cria a malha de tuneis entres os sistemas mais importantes
         result = calculate_malha_essencial(systems[:n_main_systems], n_main_systems, tensao_max, priority) 
         # Parte 2 - encontra o par de pontos mais proximos do conjunto de vertices 
-        # Encontra o ponto de ressonancia de um conjunto de pontos ordenados pelo x das coordenadas, ordenado pelo y das coordenadas
         dist_min, pair = closestPair(sorted(systems, key=lambda x:x[1]), sorted(systems, key=lambda x:x[2]), len(systems), priority)
         
-        #Imprime saida, enviando os seguintes parâmetros:
-        # Parâmetro 1: Malha ordenada, primeiramente pela distância, se for igual, desempata com a prioridade da id_origem, se for igual, por fim desempata com a prioridade do id_dest
-        # Parâmetro 2: dist_min obtida da função que encontra o par de pontos mais proximos
-        # Parâmetro 3: pares mais proximos obtido novamente da funcao closestPair
+        # Imprime a saída formatada
+        # Parâmetro 1: malha ordenada por distância, depois por prioridade dos IDs
+        # Parâmetro 2: menor distância entre dois pontos
+        # Parâmetro 3: par correspondente à menor distância encontrada
         printar_saida(sorted(result, key=lambda x: (x[2], priority[x[0]], priority[x[1]])), dist_min, pair)
-        
-        
 if __name__ == "__main__":
     main()
