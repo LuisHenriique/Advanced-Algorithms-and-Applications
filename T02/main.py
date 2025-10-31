@@ -1,11 +1,6 @@
 import math
 import heapq
 
-def prioridade_do_par(a, b, priority):
-    """Funcao resposavel por retornar o par mais prioritario"""
-    return min(priority[a], priority[b])
-
-
 def distance_between_two_points(pointA,pointB):
     """Funcao que calcula a distância entre dois pontos"""
     return math.sqrt((pointA[0] - pointB[0])**2 + (pointA[1] - pointB[1])**2)
@@ -18,9 +13,9 @@ def brute_force_closest_pair(P, n, priority):
         for j in range(i+1, n):
             dist = distance_between_two_points(P[i][1:], P[j][1:])
             # Se encontrou distância menor OU empate com prioridade melhor
-            if (dist < min_d) or (abs(dist - min_d) < 1e-9 and
-                                  prioridade_do_par(P[i][0], P[j][0], priority) <
-                                  prioridade_do_par(pair[0], pair[1], priority)):
+            if (dist < min_d or
+                (abs(dist - min_d) < 1e-9 and priority[P[i][0]] < priority[pair[0]]) or
+                (abs(dist - min_d) < 1e-9 and priority[P[i][0]] == priority[pair[0]] and priority[P[j][0]] < priority[pair[1]])):
                 min_d = dist
                 # ordena os ids de acordo com prioridade (menor índice primeiro)
                 if priority[P[i][0]] < priority[P[j][0]]:
@@ -54,9 +49,12 @@ def closestPair(px, py ,n, priority):
     d_right, pair_right = closestPair(right_x, right_y, len(right_x), priority)
     
     # desempate entre lados esquerdo/direito por prioridade do par, se distâncias iguais
-    if (d_left < d_right) or (abs(d_left - d_right) < 1e-9 and 
-                            prioridade_do_par(pair_left[0], pair_left[1], priority) <
-                            prioridade_do_par(pair_right[0], pair_right[1], priority)):
+    if (d_left < d_right) or (
+    abs(d_left - d_right) < 1e-9 and (
+        (priority[pair_left[0]] < priority[pair_right[0]]) or
+        (priority[pair_left[0]] == priority[pair_right[0]] and 
+         priority[pair_left[1]] < priority[pair_right[1]]))):
+        
         d = d_left
         best_pair = pair_left
     else:
@@ -74,9 +72,10 @@ def closestPair(px, py ,n, priority):
             d2 = distance_between_two_points(strip[i][1:], strip[j][1:])
             
             # Caso a distancia entre pares empate, utilize o criterio da prioridade
-            if (d2 < d) or (abs(d2 - d) < 1e-9 and 
-                          prioridade_do_par(strip[i][0], strip[j][0], priority) < prioridade_do_par(best_pair[0], best_pair[1], priority)):
-                      
+            if (d2 < d or
+                        (abs(d2 - d) < 1e-9 and priority[strip[i][0]] < priority[best_pair[0]]) or
+                        (abs(d2 - d) < 1e-9 and priority[strip[i][0]] == priority[best_pair[0]] and 
+                         priority[strip[j][0]] < priority[best_pair[1]])):
                 d = d2
                 # ordenar o par pelo id de maior prioridade primeiro
                 if priority[strip[i][0]] < priority[strip[j][0]]:
@@ -101,30 +100,31 @@ def calculate_malha_essencial(systems, n_main_systems, tensao_max, priority):
     malha_final = []
     # Fila de prioridade para as arestas
     pq = []
-    # Começa com o sistema de maior prioridade, vertice inicial
-    k = systems[0]
-    # inicia como o
-    visited.add(k[0]) 
-    
-    # adiciona as arestas do primeiro vertice à fila
-    add_arestas_do_vertice_atual(k[0], coordenadas, visited, pq, tensao_max, priority)
-    
+
     # loop guloso do prim - enquanto houver vertices nao visitados 
     while len(visited) < n_main_systems:
-        # se fila está vazia precisamos remocomeçar em um novo componente
+        # Se a fila está vazia, precisamos encontrar um novo ponto
         if not pq:
-            # escolhe o próximo vértice não visitado de maior prioridade
-            for id, _, _ in systems:
-                if id not in visited:
-                    visited.add(id)
-                    add_arestas_do_vertice_atual(id, coordenadas, visited, pq, tensao_max, priority)
-                    break
-        # Se ainda assim a fila estiver vazia, significa que não há conexões possíveis
+            # Encontre o primeiro sistema que ainda não foi visitado
+            proximo_inicio_id = None
+            for id_sys, _, _ in systems:
+                if id_sys not in visited:
+                    proximo_inicio_id = id_sys
+                    break # foi encontrado
+            
+            # Se nao houver mais pontos, todos foram visitados
+            if proximo_inicio_id is None:
+                break 
+            
+            visited.add(proximo_inicio_id)
+            add_arestas_do_vertice_atual(proximo_inicio_id, coordenadas, visited, pq, tensao_max, priority)
+
+        # Caso a fila ainda estiver vazia, continua procurando o proximo inicio
         if not pq:
-            break
+            continue
         
         # retorna a aresta mais barata (com menor distancia) - escolha gulosa
-        dist,_ ,id_origem, id_dest = heapq.heappop(pq) 
+        dist, _, id_origem, id_dest = heapq.heappop(pq) 
         
         # verifica se o novo vértice(destino) já está nos visitados, para evitar ciclos
         if id_dest in visited:
@@ -134,16 +134,16 @@ def calculate_malha_essencial(systems, n_main_systems, tensao_max, priority):
         visited.add(id_dest)     
 
         # verifica a prioridade para adicionar na ordem correta na malha final
-        if priority[id_origem] < priority[id_dest]:          
+        if (priority[id_origem] < priority[id_dest] or (priority[id_origem] == priority[id_dest] and id_origem < id_dest)):          
             malha_final.append((id_origem, id_dest, dist))
         else:
             malha_final.append((id_dest, id_origem, dist))
             
-        # adiciona as novas arestas válidas
-        add_arestas_do_vertice_atual(id_dest, coordenadas,visited, pq, tensao_max, priority)
+        # adiciona as novas arestas válidas do vértice que acabamos de adicionar
+        add_arestas_do_vertice_atual(id_dest, coordenadas, visited, pq, tensao_max, priority)
         
     return malha_final
-        
+
 def add_arestas_do_vertice_atual(id_atual, coordenadas, visited, pq, tensao_max, priority):
     """Funcao responsavel por calcular os pesos das arestas a partir de um vertice atual"""
     
@@ -154,7 +154,6 @@ def add_arestas_do_vertice_atual(id_atual, coordenadas, visited, pq, tensao_max,
         # Nao cria aresta para si mesmo ou para quem já está no conjunto solucao 
         if id_vizinho != id_atual and id_vizinho not in visited:
             dist = distance_between_two_points(coord_atual,coord_vizinho)
-            print(f"id_atual:{id_atual} id_viz:{id_vizinho} dist:{dist}") #!remover
             # Se a distancia calcula esta dentro da margem maxima de distancia, add na lista de prioridade.
             if dist <= tensao_max:
                 # Adiciona a aresta (distância,desempate pela prioridade do destino (id_vizinho) o que tiver menor valor -> mais prioritario, origem, destino)
