@@ -24,7 +24,6 @@ def brute_force_closest_pair(P, n, priority):
                     pair = (P[j][0], P[i][0])
     return min_d, pair
 
-
 def closestPair(px, py ,n, priority):
     """Funcao que encontra o par de pontos mais proximos utilizando divisao e conquista"""
     
