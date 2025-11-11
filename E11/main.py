@@ -5,8 +5,8 @@ def dfs_iterativo(adj, qtd_nos):
     
     # Cria um array booleano para cada no tem tamanho qtd_nos + 1, pois a indexação incia em 1.
     visited = [False] * (qtd_nos + 1)
-    # lista que contém todos os componentes conectados
-    componentes = [] 
+    # contador de componentes (ou seja moléculas)
+    count_components = 0
     
     # Percorre todos os vertices (1,..,n)
     for v in range(1, qtd_nos + 1):
@@ -14,7 +14,7 @@ def dfs_iterativo(adj, qtd_nos):
         if not visited[v]:
             stack = Stack()
             stack.push(v) # Adiciona na pilha
-            componente = []
+            componente = [] # componente a ser formada (molécula)
         
             while not stack.is_empty():
                 no = stack.pop()
@@ -27,9 +27,9 @@ def dfs_iterativo(adj, qtd_nos):
                         if not visited[viz]:
                             stack.push(viz)
             
-            componentes.append(componente)
+            count_components += 1
     
-    return componentes
+    return count_components
 
 def main():
     x_tests = int(input())
@@ -44,8 +44,8 @@ def main():
             adj[u].append(v)
             adj[v].append(u)
         # Conjuntos das moléculas(componentes)
-        componentes = dfs_iterativo(adj, n_atomos)
-        print(len(componentes))
+        count_components = dfs_iterativo(adj, n_atomos)
+        print(count_components)
         
 if __name__ == "__main__":
     main()
